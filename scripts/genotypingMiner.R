@@ -29,7 +29,8 @@ genotyping <- list()
 ## data extraction
 
 ## list of genes to extract
-genes <- c("rs4646994","rs1042713","rs1042714","rs699","rs1815739")
+genes <- c("rs4646994","rs1042713","rs1042714","rs699","rs1815739","rs1799722",
+           "rs1800629","rs1800012","rs143383")
 
 ## client name
 genotyping <- c(genotyping,"clientName"=genotyping.txt[6])
@@ -39,13 +40,18 @@ clientId <- genotyping.txt[grepl("mero de muestra:",genotyping.txt)]
 clientId <- gsub(".*mero de muestra: ","",clientId)
 genotyping <- c(genotyping,"clientId"=clientId)
 
-## ACE variant and effect
-genotyping <- c(genotyping,"rs4646994"=genotyping.txt[718],
-                "rs4646994effect"=genotyping.txt[720])
+##############################################################################
+## snps stored in genes have the following pattern
+##rs699
+##
+##CC
+##
+##Pequeña asociación con la fuerza
+##
+## hence rsid can be match and the look for the next + 2, and + 4 lines 
 
-## ADRB2 variant and effect
-genotyping <- c(genotyping,"rs1042713"=genotyping.txt[724],
-                "rs1042713effect"=genotyping.txt[728])
+## getting alleles 
+alleles <- genotyping.txt[sapply(genes, function(x) grep(x,genotyping.txt))+2]
 
-## AGT variant and effect
-genotyping <- c(genotyping,"rs699"=)
+## getting recommendation
+recomendation <- genotyping.txt[sapply(genes, function(x) grep(x,genotyping.txt))+4]
