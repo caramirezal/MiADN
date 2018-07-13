@@ -1,8 +1,8 @@
+## data mining of endurance data of page 6
 
-filePath <- "/home/carlos/data/miadn/genotyping/Abraham Vargas Najera/fitness_premium.pdf"
+filePath <- "/home/carlos/data/miadn/genotyping/Abigail Canada Torres/fitness_premium.pdf"
 
-
-getPower <- function(filePath){
+getEndurance <- function(filePath){
         ## output file to store text converted from pdf
         oPath <- "page1.txt"
         
@@ -14,9 +14,6 @@ getPower <- function(filePath){
         
         ## Extract first page
         firstPage <- readLines(oPath,warn = FALSE)
-        
-        ## check report language
-        language <- ifelse(sum(grepl("irth",firstPage))>0,"English","Spanish")
         
         ## extract client id
         clientLine <- firstPage[grep("MMX",firstPage)]
@@ -36,53 +33,50 @@ getPower <- function(filePath){
         
         ## data mining
         genotyping.txt <- readLines(oPath,warn = FALSE)
+        genotyping.txt <- genotyping.txt[nchar(genotyping.txt)>69]
+        genotyping.txt <- sapply(genotyping.txt,function(x) substr(x,60,nchar(x)))
+        genotyping.txt <- unname(genotyping.txt)
         
-        ## getting P/E rate
-        if ( language == "Spanish"){
-                rate <- genotyping.txt[grep("Potencial de fuerza|Potencial de potencia",
-                                            genotyping.txt)]
-                rate <- sub("Potencial de fuerza|Potencial de potencia","",rate)
-        }
-        if ( language == "English" ){
-                rate <- genotyping.txt[grep("Power Response",
-                                            genotyping.txt)]
-                rate <- sub("Power Response","",rate)
-        } 
-        rate <- sub("%","",rate)
-        rate <- gsub(" ","",rate)
-        rate <- as.numeric(rate)
-        genotyping <- c(genotyping,"rate"=rate)
+        snps <- c("ACE","ADRB2","ACTN3","BDKRB2","COL5A1","NRF","PPARGC1A",
+                  "PPARA","CRP","VEGF")
         
-        genotyping.txt <- substr(genotyping.txt,1,70)
-        
-        snps <- c("ACE","AGT","ACTN3","TRHR","PPARA","VEGF","VDR","IL6")
         
         for (i in 1:length(snps)){
                 ## find the line where the snp is
                 snpline.index <- grep(snps[i],genotyping.txt)
+                if ( length(snpline.index) > 1) {
+                        
+                }
                 snpLine <- genotyping.txt[snpline.index]
                 
                 ## get the alleles field
-                alleles <- substr(snpLine,20,40)
+                alleles <- substr(snpLine,40,60)
                 alleles <- gsub(" ","",alleles)
                 
                 ## extract effect
-                effect <- substr(snpLine,46,70)
+                effect <- substr(snpLine,nchar(snpLine)-5,nchar(snpLine))
                 effect <- gsub(" ","",effect)
                 effect <- gsub("•","+",effect)
                 
                 ## storing results
-                result <- list(alleles,effect)
+                result <- list(alleles[1],effect[1])
                 names(result) <- c(snps[i],paste(snps[i],"effect",sep=""))
                 genotyping <- c(genotyping,result)
+                
+                if ( length(snpLine) > 1 ) {
+                        result <- list(alleles[2],effect[2])
+                        snp2 <- paste(snps[i],"snp2",sep="")
+                        names(result) <- c(snp2,paste(snp2,"effect",sep=""))
+                        genotyping <- c(genotyping,result)
+                }
         }
-        genotyping
         
-}
+        return(genotyping)
+} 
 
-#######################################################################################
+##################################################################################
 
-powerMiner <- function(fPath){
+enduranceMiner <- function(fPath){
         ## getting pdf paths from the fPath root dir
         fileNames <- list.files(fPath,recursive = TRUE)
         filePaths <- fileNames[grep("ness_premium",fileNames)]
@@ -94,15 +88,15 @@ powerMiner <- function(fPath){
         ## iterate over files
         for (i in 1:length(filePaths)) {
                 print(filePaths[i])
-                res <- getPower(filePaths[i])
+                res <- getEndurance(filePaths[i])
                 res <- as.data.frame(res)
                 data <- rbind(data,res)
-                
         }
         
         ## massage results
         data <- data.frame(data,row.names = NULL)
         return(data)
 } 
+
 
 
