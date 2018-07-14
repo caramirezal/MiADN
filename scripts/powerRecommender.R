@@ -28,22 +28,20 @@ for (i in 1:nrow(alleles)){
 ## mean squared error
 mse <- sqrt(mean((predictions-alleles$rate)^2))
 
-## model fit
-plot(alleles$rate,predictions,
-     col="steelblue",pch=20,
-     xlab = "P/E (DNAfit )",ylab = "P/E (Linear Regression)",
-     font=2,font.lab=2,cex.lab=1.2,cex=1.2)
-abline(0,1,col="red",lwd=3)
+## Plotting summary results
+library(ggplot2)
 
-## Deviation from true values
-hist(predictions-alleles$rate,breaks = 1000,
-     main = "",xlab = "Deviation from true values",
-     font.lab=2,cex.lab=1.2,cex=1.2)
+results <- data.frame("dnafit"=alleles$rate,
+                      "predictions"=predictions)
+theme_set(theme_light())
+g <- ggplot(data = results,aes(x=dnafit,y=predictions)) + geom_point(colour="steelblue")
+g <- g + geom_smooth(method = "lm",formula = y~x,colour="red")
+g <- g + labs(x="P/E (DNAfit)",y="P/E (Linear regression)")
+g <- g + theme(text = element_text(size=26,face="bold"))
+plot(g)
 
-coef(model)
 
 ## run example
 newSample <- sample(1:nrow(alleles),1)
 model <- lm(rate~.,alleles[-newSample,])
-predict(model,newdata = alleles[newSample,])
-alleles$rate[newSample]
+unname(predict(model,newdata = alleles[newSample,]));alleles$rate[newSample]
