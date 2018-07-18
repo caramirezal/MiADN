@@ -175,5 +175,5 @@ recoveryMiner <- function(fPath){
         return(data)
 } 
 
-res <- recoveryMiner("/home/carlos/scripts/MiADN/data/genotyping/")
+res <- recoveryMiner("/home/carlos/data/miadn/genotyping/")
 write.csv(res,"../data/recovery.csv",row.names = FALSE)
