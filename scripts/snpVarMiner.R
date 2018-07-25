@@ -68,96 +68,17 @@ head(snpsTable)
 
 totalTime <- Sys.time() - initialTime
 
+#####################################################################################
+## Read html to text
+con <- url("https://opensnp.org/search?utf8=%E2%9C%93&search=adipocyte")
+html <- readLines(con)
+grep('href="http://www.mendeley.com/',html,value = TRUE)
+close(con)
 
-library(xml2)
+## read html to tree parsed structure
+library(httr)
+html2 <- GET(url)
+cont <- content(html2,as = "text")
+parsedHtml <- htmlParse(cont,asText = TRUE)
+xpathSApply(parsedHtml,"//td[@class='table-cell vertical-centered']",xmlValue)
 
-read_xml("https://www.snpedia.com/index.php?title=Special%3ASearch&search=fitness|diabetes&go=Ir")
-
-baseURL <- "https://bots.snpedia.com/api.php"
-format <- "format=json"
-query <- "action=query&cmlimit=max&cmprop=title&list=categorymembers&cmcontinue="
-
-paste(baseURL,format,query,sep="")
-
-
-limit <- "max"
-category <- "Is_a_snp"
-baseURL <- "https://bots.snpedia.com/api.php"
-format <- "format=json"
-query <- "action=query&list=categorymembers&cmlimit=___LIMIT___&cmprop=title&cmtitle=Category:___CATEGORY___"
-continue <- "cmcontinue="
-query <- sub("___LIMIT___", limit, query)
-query <- sub("___CATEGORY___", category, query)
-baseURL <- paste0(baseURL, "?", format, "&", query, "&", 
-                  continue)
-res <- NULL
-cont <- ""
-continueURL <- paste0(baseURL, cont)
-lineas <- getURL(continueURL)
-#library(jsonlite)
-lineas <- gsub("\\n", "\\\\n", lineas)
-js <- fromJSON(lineas)
-res <- rbind(js[["query"]][["categorymembers"]], res)
-cont <- js[["continue"]][["cmcontinue"]]
-touse <- res[, "ns"] == 0
-res <- res[touse, "title"]
-res
-
-
-###################################################################################
-
-getsnps <- function(category,
-                                verbose = FALSE,
-                                includeTemplates = FALSE,
-                                limit,
-                                baseURL,
-                                format,
-                                query,
-                                continue
-) {
-        
-        ## default URL parameters
-        if (missing(limit))     limit    <- 550
-        if (missing(baseURL))   baseURL  <- "https://bots.snpedia.com/api.php"
-        if (missing(format))    format   <- "format=json"
-        if (missing(query))     query    <- "action=query&list=categorymembers&cmlimit=___LIMIT___&cmprop=title&cmtitle=Category:___CATEGORY___"
-        if (missing(continue))  continue <- "cmcontinue="
-        
-        ## replace query parameters
-        query <- sub("___LIMIT___",       limit, query)
-        query <- sub("___CATEGORY___", category, query)
-        
-        ## base url
-        baseURL <- paste0(baseURL, "?", format, "&", query, "&", continue)
-        print(baseURL)
-        
-        ## iterate across pages 
-        res <- NULL
-        cont <- ""
-        while (!is.null(cont)) {
-                continueURL <- paste0(baseURL, cont)
-                if (verbose) {
-                        cat("Downloading...", continueURL, fill = TRUE)
-                }
-                lineas <- getURL(continueURL)
-                lineas <- gsub("\\n", "\\\\n", lineas) ##Funny line ends break json
-                js <- fromJSON(lineas)
-                res <- rbind(js[["query"]][["categorymembers"]], res)
-                ##cont <- js[["query-continue"]][["categorymembers"]][["cmcontinue"]]
-                cont <- js[["continue"]][["cmcontinue"]]
-        }
-        print(continueURL)
-        
-        if (!includeTemplates) {
-                if (verbose) {
-                        cat("Template pages not included", fill = TRUE)
-                }
-                touse <- res[,"ns"] == 0
-                res <- res[touse, "title"]
-        }
-        
-        ## output
-        return(res)
-}
-
-"https://bots.snpedia.com/api.php?format=json&action=query&list=categorymembers&cmlimit=550&cmprop=title&cmtitle=Category:Is_a_snp&cmcontinue="
