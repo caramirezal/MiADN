@@ -1,84 +1,58 @@
-## http://genome.ucsc.edu/cgi-bin/hgTables
-## See downloadSNPsUCSCparameters.png to see the parameters of the search
-
-n <- 5000
-data <- read.table("../data/allSNPs.tsv",sep = "\t",nrows = n,header = FALSE)
-snps <- as.character(data$V5[1:n])
-snps <- data.frame("dbsnp"=rep("dbsnp",n),"snps"=snps)
-write.table(snps,"../data/snpsIds.csv",row.names = FALSE,col.names = FALSE,sep = "\t",
-            quote = FALSE)
-
-## Then snps were copy and pasted in the nexus tool to retrieve annotated
-## snps
-## http://snp-nexus.org/index.html
-
-
-########################################################################################
-## Data Mining from snpedia
-library(SNPediaR)
-
-## getting all snps from snpedia using SNPediaR appi
-snps <- getCategoryElements(category = "Is_a_snp")
-
-## saving the data
-## write.table(snps,"../data/snpedia.csv",row.names = FALSE,col.names = FALSE,sep = "\t",
-##            quote = FALSE)
-
-## read data
-snps <- read.table("../data/snpedia.csv",header = FALSE,sep = "\t")
-snps <- as.character(snps$V1)
-
-## fields to extract
-fields <- c("Title=","Chromosome=","PMID=","PMID=","Assembly=",
-            "StabilizedOrientation=")
-
-
-
-n <- 1
-
-## dataframe to store results
-snpsTable <- matrix(0,n,length(fields)+2)
-snpsTable <- as.data.frame(snpsTable)
-colnames(snpsTable) <- c("snps","summary",fields)
-
-## function to extract fields fron snp
-extractFields <- function(field,page){
-        res <- grep(field,page[[1]],value = TRUE)
-        res <- gsub(paste(field,"\n",sep="|"),"",res)
-        res <- ifelse(length(res)==1,res,NA)
-        res
-}
-
-initialTime <- Sys.time()
-for (i in 1:n){
-        page <- getPages(snps[i])
-        
-        ## extract summary from pages
-        summary.snp <- extractSnpTags(page[[1]])
-        summary.snp <- summary.snp["Summary"] 
-        
-        ## process snpTags
-        page <- strsplit(page[[1]],"|",fixed = TRUE)
-        
-        ## extracting fields for a single snp
-        snpFields <- sapply(fields, function(x) extractFields(x,page))
-        snpsTable[i,] <- c(snps[i],summary.snp,snpFields) 
-}
-head(snpsTable)
-
-totalTime <- Sys.time() - initialTime
-
-#####################################################################################
-## Read html to text
-con <- url("https://opensnp.org/search?utf8=%E2%9C%93&search=adipocyte")
-html <- readLines(con)
-grep('href="http://www.mendeley.com/',html,value = TRUE)
-close(con)
-
-## read html to tree parsed structure
+## query opensnp.com
 library(httr)
-html2 <- GET(url)
-cont <- content(html2,as = "text")
-parsedHtml <- htmlParse(cont,asText = TRUE)
-xpathSApply(parsedHtml,"//td[@class='table-cell vertical-centered']",xmlValue)
+library(dplyr)
+
+## query definition
+baseURL <- "https://opensnp.org/search?utf8=%E2%9C%93&search="
+
+## energy efficiency Universe
+keywords <- c("diabetes","carbohydrates","glucose","glycolisis","pentose","phosphate",
+            "Piruvate","insulin","glucogen","lipids","lipogenesis","trigliceride",
+            "Isocitrate","proteins","amino+acids","BCAA","T1DM","T2DM","TCA+cycle",
+            "Acetil+CoA","isocitrato","obesity")
+
+###########################################################################################
+## Data mining based on keywords
+
+## perform a single query
+findSnpsByKeywordOpenSnp <- function(keyword){
+        ## Query definition
+        url <- paste0(baseURL,keyword)
+        
+        ## read html to tree parsed structure
+        html2 <- GET(url)
+        cont <- content(html2,as = "text")
+        parsedHtml <- htmlParse(cont,asText = TRUE)
+        
+        ## getting rsIds inside tag: <a><td> rsIds </td></a>
+        fields <- xpathSApply(parsedHtml,
+                              "//td[@class='table-cell vertical-centered']//a", 
+                              xmlValue)
+        
+        ## filtering rsIds
+        if ( length(fields) > 0 ){
+                rsIds <- grep("rs[[:digit:]]",fields,value = TRUE)      ## getting rs1-9 pattern
+                rsIds <- rsIds[nchar(rsIds) < 11]                       ## filtering string by size
+                head(rsIds)
+                length(rsIds)
+                
+                ## formatting output dataframe of three columns containing
+                ## rsIds, ocurrences, and keyword
+                idFrequencies <- table(rsIds)
+                snps <- data.frame("rsIds"=names(idFrequencies),
+                                   "Ocurrences"=as.vector(idFrequencies),
+                                   "query"=rep(keyword,length(idFrequencies)))
+                
+                return(snps)
+                
+        } else {
+                ## No query results case
+                cat("Query = ",keyword,"have no results in opensnp.com data bases")
+                snps <- NULL
+                
+                return(snps)
+        }
+}
+
+
 
