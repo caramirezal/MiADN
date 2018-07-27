@@ -63,16 +63,40 @@ openSnpQuery <- function(keywords){
         snps <- data.frame()
         
         ## performing query and appending results to snps
-        for (i in 1:length(keywords)){
-                res <- findSnpsByKeywordOpenSnp(keywords[i])
-                if ( length(res) > res ){
-                        snps <- rbind(snps,snps2)
+        for (k in keywords){
+                res <- findSnpsByKeywordOpenSnp(k)
+                if ( length(res) > 0 ){
+                        snps <- rbind(snps,res)
                 }
         }
         
         return( arrange(snps,desc(Ocurrences)) )
 }
 
+## performing query to opensnp
+snps <- openSnpQuery(keywords)
 
+## processing rs Ids
+snps[,"rsIds"] <- sapply(snps[,"rsIds"], function(x) gsub("A|C|Ŧ|G|/","",x))
+
+## saving data
+write.csv(snps,
+          "../data/opensnp.csv",
+          row.names=FALSE)
+
+## reading pre calculated data
+snps <- read.csv("../data/opensnp.csv")
+
+## snpnexus query format
+nexusQuery <- data.frame("dbsnp"=rep("dbsnp",nrow(snps)),
+                         "rsIds"=snps[,"rsIds"])
+head(nexusQuery)
+write.table(nexusQuery,"../data/nexusQuery.tsv",
+            col.names = FALSE,row.names = FALSE,quote = FALSE)
+
+
+## dbSNP query format
+write.table(snps[,"rsIds"],"../data/dbSNPQuery.tsv",
+            col.names = FALSE,row.names = FALSE,quote = FALSE)
 
 
