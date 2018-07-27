@@ -1,9 +1,8 @@
 ## query opensnp.com
 library(httr)
 library(dplyr)
-
-## query definition
-baseURL <- "https://opensnp.org/search?utf8=%E2%9C%93&search="
+library(XML)
+library(dplyr)
 
 ## energy efficiency Universe
 keywords <- c("diabetes","carbohydrates","glucose","glycolisis","pentose","phosphate",
@@ -17,6 +16,7 @@ keywords <- c("diabetes","carbohydrates","glucose","glycolisis","pentose","phosp
 ## perform a single query
 findSnpsByKeywordOpenSnp <- function(keyword){
         ## Query definition
+        baseURL <- "https://opensnp.org/search?utf8=%E2%9C%93&search="
         url <- paste0(baseURL,keyword)
         
         ## read html to tree parsed structure
@@ -53,6 +53,26 @@ findSnpsByKeywordOpenSnp <- function(keyword){
                 return(snps)
         }
 }
+
+#########################################################################################
+## Perform query
+
+## iterate keyword query
+openSnpQuery <- function(keywords){
+        ## dataframe to store data
+        snps <- data.frame()
+        
+        ## performing query and appending results to snps
+        for (i in 1:length(keywords)){
+                res <- findSnpsByKeywordOpenSnp(keywords[i])
+                if ( length(res) > res ){
+                        snps <- rbind(snps,snps2)
+                }
+        }
+        
+        return( arrange(snps,desc(Ocurrences)) )
+}
+
 
 
 
