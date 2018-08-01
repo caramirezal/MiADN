@@ -100,3 +100,35 @@ write.table(snps[,"rsIds"],"../data/dbSNPQuery.tsv",
             col.names = FALSE,row.names = FALSE,quote = FALSE)
 
 
+##################################################################################################
+library(biomaRt)
+library(dplyr)
+
+rsIds <- read.csv("../data/opensnp.csv")
+head(rsIds)
+
+## SNP annotation using biomart
+ensembl_snp <- useMart("ENSEMBL_MART_SNP", dataset="hsapiens_snp")
+annotatedSNPs <- getBM(attributes=c('refsnp_id','associated_gene',"allele",
+                                    "clinical_significance",'phenotype_description',
+                                    'p_value'), 
+                   filters = 'snp_filter', 
+                   values = rsIds$rsIds, 
+                   mart = ensembl_snp)
+
+## dropping SNPs with NA or higher p-value
+annotatedSNPs.p <- filter(annotatedSNPs,(!is.na(p_value))) %>%
+        filter(p_value<0.05)
+
+
+phenotypes <- with(annotatedSNPs.p,
+                   aggregate(phenotype_description,
+                             by=list(refsnp_id),
+                             FUN=paste(unique(,.)),collapse="|"))
+
+pvalues <- 
+
+        
+write.csv(as.data.frame(annotatedSNPs.p), 
+          "../data/annotatedSNPs.csv", 
+          row.names = FALSE)
